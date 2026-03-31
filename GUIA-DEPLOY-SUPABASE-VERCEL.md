@@ -17,6 +17,19 @@ La app usa **PostgreSQL** (recomendado **Supabase**) y se despliega en **Vercel*
 
 > Si Vercel no conecta: en la misma sección de Database, revisá que **“Connection pooling”** esté habilitado y usá el string del pooler para `DATABASE_URL`.
 
+### Crear tablas y datos de prueba (en tu Mac)
+
+No podés hacerlo desde Cursor/cloud por vos: hace falta **tu red** y **tus URLs/contraseña**.
+
+1. En `web/.env`, **comentá** las líneas `DATABASE_URL` / `DIRECT_URL` del bloque LOCAL y **pegá** las dos de Supabase (pooler + direct), o dejá LOCAL si usás Docker.
+2. En la carpeta `web`:
+
+   ```bash
+   npm run db:setup
+   ```
+
+   Eso ejecuta `prisma migrate deploy` + `db:seed` (admin y menú demo). Si usás solo Supabase, no hace falta Docker.
+
 ---
 
 ## Parte B — GitHub (código)
@@ -67,20 +80,11 @@ La app usa **PostgreSQL** (recomendado **Supabase**) y se despliega en **Vercel*
 
 ## Parte D — Datos iniciales (admin de prueba)
 
-El **seed** no corre solo en Vercel (por seguridad). Desde tu PC, con el mismo Supabase:
+El **seed** no corre solo en Vercel (por seguridad). Desde tu PC, con las mismas variables que Supabase (o Postgres local):
 
-1. Copiá `web/.env.example` a `web/.env` y pegá **los mismos** `DATABASE_URL`, `DIRECT_URL` y un `SESSION_SECRET` válido.
-2. En la carpeta `web`:
-
-   ```bash
-   cd web
-   npm install
-   npx prisma migrate deploy
-   npm run db:seed
-   ```
-
-3. El seed crea un admin (mirá la consola por email/contraseña por defecto o usá `SEED_ADMIN_EMAIL` / `SEED_ADMIN_PASSWORD` en `.env` antes del seed).
-
+1. Asegurate de tener `DATABASE_URL`, `DIRECT_URL` y `SESSION_SECRET` (32+ caracteres) en `web/.env`.
+2. `cd web && npm install && npm run db:setup`
+3. El seed crea un admin (mirá la consola por email/contraseña por defecto o usá `SEED_ADMIN_EMAIL` / `SEED_ADMIN_PASSWORD` en `.env` antes del comando).
 4. **Importante:** en producción cambiá esa contraseña desde el panel **Admin → Usuarios**.
 
 ---
@@ -96,7 +100,7 @@ El **seed** no corre solo en Vercel (por seguridad). Desde tu PC, con el mismo S
 
 2. En `web/.env`, usá las URLs del bloque “local” en `.env.example` (`menu` / `menu` / `menu_diario`).
 
-3. `npx prisma migrate dev` y `npm run dev`.
+3. `npm run db:setup` (primera vez) y después `npm run dev`. Para cambios de esquema: `npx prisma migrate dev`.
 
 ---
 
