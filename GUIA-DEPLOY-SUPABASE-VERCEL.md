@@ -176,6 +176,8 @@ Abrí [http://localhost:3000](http://localhost:3000), iniciá sesión con el adm
 
    Marcá **Production** (y **Preview** si querés que los previews también usen la misma base).
 
+   **Importante en Vercel:** al pegar el **Value**, **no pongas comillas** `"` ni antes ni después (solo el texto que empieza con `postgresql://`). **`DATABASE_URL`** tiene que ser el **Transaction pooler** (puerto **6543**, host `…pooler.supabase.com`), **no** el mismo string que `DIRECT_URL` (ese es directo **5432**).
+
 6. Clic en **Deploy**.
 7. Esperá a que termine el build. Si falla, abrí **Build Logs**: lo más común es `DATABASE_URL` / `DIRECT_URL` mal pegados o contraseña con caracteres que hay que **encodear** en la URL (`@` → `%40`, etc.).
 
