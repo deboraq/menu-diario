@@ -1,0 +1,17 @@
+# Contenedor con la app; la base es Supabase (o cualquier Postgres) vía .env
+#
+#   docker compose up --build
+#
+# Primera vez contra una base vacía (misma red que tu máquina):
+#   docker compose run --rm web npx prisma migrate deploy
+#   docker compose run --rm web npx prisma db seed
+
+services:
+  web:
+    build: .
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env
+    environment:
+      NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:-http://localhost:3000}

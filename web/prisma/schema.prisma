@@ -1,0 +1,96 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id                  String               @id @default(cuid())
+  email               String               @unique
+  name                String
+  passwordHash        String
+  role                String               @default("EMPLOYEE")
+  createdAt           DateTime             @default(now())
+  orders              Order[]
+  passwordResetTokens PasswordResetToken[]
+}
+
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+}
+
+model Invite {
+  id        String    @id @default(cuid())
+  email     String
+  token     String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+}
+
+model MenuDay {
+  id            String        @id @default(cuid())
+  date          DateTime
+  title         String?
+  // desde cuándo el empleado ve el menú y puede pedir (si es null → inicio del día del menú)
+  visibleFromAt DateTime?
+  deadlineAt    DateTime
+  createdAt     DateTime      @default(now())
+  sections      MenuSection[]
+  orders        Order[]
+}
+
+model MenuSection {
+  id                String     @id @default(cuid())
+  menuDayId         String
+  menuDay           MenuDay    @relation(fields: [menuDayId], references: [id], onDelete: Cascade)
+  title             String
+  sortOrder         Int        @default(0)
+  // false = la sección no se muestra al empleado al pedir
+  visibleToEmployee Boolean    @default(true)
+  items             MenuItem[]
+}
+
+model MenuItem {
+  id          String      @id @default(cuid())
+  sectionId   String
+  section     MenuSection @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  title       String
+  description String
+  tag         String?
+  sortOrder   Int         @default(0)
+}
+
+model Order {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  menuDayId String
+  menuDay   MenuDay  @relation(fields: [menuDayId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  selections OrderSelection[]
+
+  @@unique([userId, menuDayId])
+}
+
+model OrderSelection {
+  id         String @id @default(cuid())
+  orderId    String
+  order      Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  sectionId  String
+  menuItemId String
+
+  @@unique([orderId, sectionId])
+}

@@ -1,0 +1,15 @@
+.DS_Store
+Thumbs.db
+
+# App Next.js
+web/node_modules/
+web/.next/
+web/out/
+web/.env
+web/.env.local
+web/.env.*.local
+web/.vercel
+web/*.tsbuildinfo
+web/npm-debug.log*
+web/dev.db
+web/dev.db-journal

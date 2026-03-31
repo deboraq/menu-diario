@@ -1,0 +1,130 @@
+@import "tailwindcss";
+
+/* Tema oscuro — tokens */
+:root {
+  --bg: #09090b;
+  --bg-subtle: #0c0c0f;
+  --surface: #18181b;
+  --card: #1c1c22;
+  --card-hover: #222228;
+  --border: rgba(255, 255, 255, 0.08);
+  --border-strong: rgba(255, 255, 255, 0.12);
+  --foreground: #fafafa;
+  --muted: #a1a1aa;
+  --muted-fg: #71717a;
+  --accent: #a78bfa;
+  --accent-dim: #7c3aed;
+  --accent-muted: rgba(167, 139, 250, 0.12);
+  --ring: rgba(167, 139, 250, 0.35);
+  --input-bg: #27272a;
+  --success: #34d399;
+  --success-bg: rgba(52, 211, 153, 0.1);
+  --warning: #fbbf24;
+  --warning-bg: rgba(251, 191, 36, 0.1);
+  --danger: #f87171;
+  --danger-bg: rgba(248, 113, 113, 0.1);
+}
+
+@theme inline {
+  --color-background: var(--bg);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+html {
+  color-scheme: dark;
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--bg);
+  background-image:
+    radial-gradient(ellipse 120% 80% at 50% -30%, rgba(124, 58, 237, 0.18), transparent 55%),
+    radial-gradient(ellipse 80% 50% at 100% 50%, rgba(167, 139, 250, 0.06), transparent 45%);
+  color: var(--foreground);
+  font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+  min-height: 100dvh;
+}
+
+@layer components {
+  .ui-card {
+    @apply rounded-2xl border border-[var(--border)] bg-[var(--card)] shadow-xl shadow-black/20;
+  }
+
+  .ui-input {
+    @apply w-full rounded-xl border border-[var(--border)] bg-[var(--input-bg)] px-3 py-2.5 text-sm text-[var(--foreground)] outline-none transition placeholder:text-[var(--muted-fg)] focus:border-[var(--accent-dim)] focus:ring-2 focus:ring-[var(--ring)];
+  }
+
+  .ui-btn-primary {
+    @apply inline-flex items-center justify-center rounded-xl bg-[var(--accent-dim)] px-4 py-2.5 text-sm font-medium text-white shadow-lg shadow-violet-950/40 transition hover:bg-[var(--accent)] hover:shadow-violet-900/30 disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
+  .ui-btn-ghost {
+    @apply inline-flex items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm font-medium text-[var(--foreground)] transition hover:border-[var(--border-strong)] hover:bg-[var(--card)] disabled:opacity-50;
+  }
+
+  .ui-btn-danger-ghost {
+    @apply inline-flex items-center justify-center rounded-xl border border-red-500/20 bg-red-500/5 px-3 py-2 text-sm font-medium text-red-300 transition hover:bg-red-500/10;
+  }
+
+  .ui-label {
+    @apply text-xs font-medium uppercase tracking-wide text-[var(--muted)];
+  }
+
+  .ui-pill {
+    @apply inline-flex items-center rounded-lg bg-[var(--accent-muted)] px-2 py-0.5 text-xs font-medium text-[var(--accent)];
+  }
+}
+
+/* react-day-picker — tema oscuro (pedidos al proveedor) */
+.pedidos-calendar.rdp-root {
+  --rdp-accent-color: #a78bfa;
+  --rdp-accent-background-color: rgba(124, 58, 237, 0.28);
+  color: var(--foreground);
+  margin: 0;
+}
+
+.pedidos-calendar .rdp-weekday {
+  color: var(--muted);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.pedidos-calendar .rdp-caption_label {
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.pedidos-calendar .rdp-nav_button {
+  color: var(--muted);
+}
+
+.pedidos-calendar .rdp-nav_button:hover {
+  color: var(--foreground);
+  background: var(--surface);
+}
+
+.pedidos-calendar .rdp-day_outside {
+  opacity: 0.35;
+}
+
+.pedidos-calendar .rdp-day_has-menu:not(.rdp-selected) .rdp-day_button {
+  background: rgba(167, 139, 250, 0.1);
+  box-shadow: inset 0 0 0 1px rgba(167, 139, 250, 0.35);
+}
+
+.pedidos-calendar .rdp-selected .rdp-day_button {
+  color: white;
+}
+
+.pedidos-calendar-wide.rdp-root {
+  width: 100%;
+  max-width: 56rem;
+}
+
+.menu-source-calendar.rdp-root {
+  width: 100%;
+  max-width: 56rem;
+}

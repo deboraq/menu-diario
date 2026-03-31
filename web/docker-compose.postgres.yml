@@ -1,0 +1,18 @@
+# Postgres solo para desarrollo local (sin cuenta Supabase).
+# Arranque: docker compose -f docker-compose.postgres.yml up -d
+# Luego en .env: DATABASE_URL y DIRECT_URL como en .env.example (bloque local).
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: menu
+      POSTGRES_PASSWORD: menu
+      POSTGRES_DB: menu_diario
+    ports:
+      - "5432:5432"
+    volumes:
+      - menu_diario_pg:/var/lib/postgresql/data
+
+volumes:
+  menu_diario_pg:
