@@ -9,6 +9,6 @@ Aplicación web para menú corporativo, pedidos y administración. El código es
 
 ## Despliegue (Supabase + Vercel + GitHub)
 
-Seguí la guía paso a paso:
+Guía **completa numerada** (seguir en orden):
 
 **[GUIA-DEPLOY-SUPABASE-VERCEL.md](./GUIA-DEPLOY-SUPABASE-VERCEL.md)**

@@ -1,125 +1,250 @@
-# Guía: Supabase + Vercel + GitHub
+# Guía completa: Supabase + Vercel + GitHub (paso a paso)
 
-La app usa **PostgreSQL** (recomendado **Supabase**) y se despliega en **Vercel**. El repositorio puede vivir en **GitHub** y conectarse a Vercel con un clic.
+Seguí los pasos **en orden**. La app usa **PostgreSQL** en **Supabase**, el código en **GitHub** y el sitio en **Vercel**. La carpeta de la aplicación es **`web`**.
 
 ---
 
-## Parte A — Supabase (base de datos)
+## Checklist maestro (orden recomendado)
 
-1. Entrá a [supabase.com](https://supabase.com), creá cuenta e iniciá sesión.
-2. **New project**: elegí organización, nombre, contraseña de la base y región (la más cercana a tus usuarios).
-3. Esperá a que termine de provisionar el proyecto.
-4. Andá a **Project Settings** (engranaje) → **Database**.
-5. En **Connection string**:
-   - **Transaction pooler** (puerto **6543**, modo *Transaction*): copiá el URI. Ese valor va a **`DATABASE_URL`** en Vercel y en tu `.env`. Debe incluir **`pgbouncer=true`** (Supabase lo agrega en el string del pooler).
-   - **Direct connection** (host **`db.<ref>.supabase.co`**, puerto **5432**): copiá el URI. Ese valor va a **`DIRECT_URL`**. Lo usa Prisma para **migraciones** (`migrate deploy`).
-6. Reemplazá `[YOUR-PASSWORD]` por la contraseña que definiste al crear el proyecto.
+| # | Qué hacés |
+|---|-----------|
+| 1–9 | Crear proyecto en Supabase y copiar conexiones |
+| 10–16 | Configurar `web/.env` en tu Mac y crear tablas + datos de prueba |
+| 17–22 | Subir el código a GitHub (si todavía no está) |
+| 23–31 | Crear proyecto en Vercel, variables de entorno y primer deploy |
+| 32–34 | Ajustar URL pública y comprobar que todo funciona |
 
-> Si Vercel no conecta: en la misma sección de Database, revisá que **“Connection pooling”** esté habilitado y usá el string del pooler para `DATABASE_URL`.
+---
 
-### Crear tablas y datos de prueba (en tu Mac)
+## 1. Crear cuenta y proyecto en Supabase
 
-No podés hacerlo desde Cursor/cloud por vos: hace falta **tu red** y **tus URLs/contraseña**.
+1. Entrá a [https://supabase.com](https://supabase.com) y creá cuenta o iniciá sesión.
+2. Clic en **New project**.
+3. Elegí la **organización**, el **nombre** del proyecto (ej. `menudiario`), una **contraseña fuerte** para la base (guardala en un lugar seguro) y la **región** más cercana a tus usuarios.
+4. Esperá a que el estado del proyecto pase a **Healthy** (puede tardar unos minutos).
 
-1. En `web/.env`, **comentá** las líneas `DATABASE_URL` / `DIRECT_URL` del bloque LOCAL y **pegá** las dos de Supabase (pooler + direct), o dejá LOCAL si usás Docker.
-2. En la carpeta `web`:
+## 2. Obtener las dos URLs de conexión (obligatorio)
+
+1. En el panel del proyecto, arriba, hacé clic en **Connect** (o andá a **Project Settings** → ícono de engranaje → **Database**).
+2. Buscá **Connection string** y el modo **URI**.
+3. **Primera URL — `DATABASE_URL` (pooler):**
+   - Elegí **Transaction pooler** (puerto **6543**).
+   - Copiá el URI completo. Debe incluir **`pgbouncer=true`** en la query.
+   - Reemplazá el placeholder de contraseña por la contraseña del proyecto que definiste al crearlo.
+4. **Segunda URL — `DIRECT_URL` (conexión directa):**
+   - Elegí **Direct connection** o el string que apunte al host **`db.<algo>.supabase.co`** con puerto **5432**.
+   - Copiá ese URI completo y poné la misma contraseña de la base.
+
+> Si algo falla después: no mezcles la URL del pooler con la directa; `DATABASE_URL` = pooler 6543, `DIRECT_URL` = directa 5432.
+
+## 3. Comprobar en Supabase (opcional)
+
+1. En el menú izquierdo podés abrir **Table Editor**. Después del paso 10 vas a ver tablas como `User`, `MenuDay`, etc.
+
+---
+
+## 4. Configurar el proyecto en tu Mac
+
+1. Abrí una terminal.
+2. Andá a la carpeta de la app:
+
+   ```bash
+   cd ruta/completa/a/menu-diario/web
+   ```
+
+3. Si nunca instalaste dependencias:
+
+   ```bash
+   npm install
+   ```
+
+---
+
+## 5. Editar `web/.env` (sin usar localhost si no tenés Docker)
+
+Abrí el archivo **`web/.env`** en el editor.
+
+1. **Borrá o comentá con `#`** cualquier línea que diga:
+   - `DATABASE_URL=...localhost...`
+   - `DIRECT_URL=...localhost...`
+   - o `file:./dev.db` (SQLite ya no se usa).
+
+2. **Agregá estas líneas** (pegá tus valores reales de Supabase, entre comillas):
+
+   ```env
+   DATABASE_URL="pegar-aqui-el-uri-del-transaction-pooler-6543"
+   DIRECT_URL="pegar-aqui-el-uri-directo-5432"
+   ```
+
+3. **Sesión** — tiene que tener **al menos 32 caracteres**. Ejemplo (cambiá por algo aleatorio en producción):
+
+   ```env
+   SESSION_SECRET="una-frase-muy-larga-y-aleatoria-de-mas-de-32-caracteres"
+   ```
+
+4. **URL de la app en tu máquina** (para desarrollo):
+
+   ```env
+   NEXT_PUBLIC_APP_URL="http://localhost:3000"
+   ```
+
+5. **Opcional:**
+
+   ```env
+   NEXT_PUBLIC_CATERER_EMAIL="pedidos@proveedor.com"
+   ```
+
+6. Guardá el archivo.
+
+---
+
+## 6. Crear tablas y datos de prueba en Supabase
+
+1. En la terminal, estando en la carpeta **`web`**:
 
    ```bash
    npm run db:setup
    ```
 
-   Eso ejecuta `prisma migrate deploy` + `db:seed` (admin y menú demo). Si usás solo Supabase, no hace falta Docker.
+2. Ese comando hace:
+   - `prisma migrate deploy` → crea todas las tablas en Supabase.
+   - `prisma db seed` → carga admin de demo y menú de ejemplo (mirá la consola: email y contraseña del admin).
+
+3. Si ves **P1001** o “Can't reach database server at `localhost`”:
+   - Tu `.env` todavía apunta a **localhost** o no guardaste los cambios.
+   - Volvé al paso 5 y asegurate de que **solo** queden las URLs de Supabase (o seguí el **Apéndice A** si querés usar Docker en local).
+
+4. En Supabase → **Table Editor** deberías ver tablas y filas nuevas.
 
 ---
 
-## Parte B — GitHub (código)
+## 7. Arrancar la app en local (opcional)
 
-1. Instalá [Git](https://git-scm.com) si no lo tenés.
-2. En la carpeta del proyecto (`menu diario` en tu máquina), abrí una terminal:
+```bash
+cd web
+npm run dev
+```
+
+Abrí [http://localhost:3000](http://localhost:3000), iniciá sesión con el admin que mostró el seed.
+
+---
+
+## 8. Subir el código a GitHub
+
+1. Si el proyecto **no** tiene git en la raíz `menu diario`:
 
    ```bash
-   cd "/ruta/a/menu diario"
+   cd ruta/a/menu-diario
    git init
    git branch -m main
    git add .
-   git commit -m "Menú diario: Postgres + Supabase + Vercel"
+   git commit -m "Menú diario: Supabase + Vercel"
    ```
 
-3. En [github.com](https://github.com): **New repository** (sin README ni .gitignore si ya los tenés local).
-4. Conectá el remoto y subí (reemplazá `TU_USUARIO` y `TU_REPO`):
+2. En [github.com](https://github.com): **New repository** → nombre → **Create repository** (sin marcar “Add README” si ya tenés archivos locales).
+
+3. Conectá y subí (reemplazá usuario y repo):
 
    ```bash
+   cd ruta/a/menu-diario
    git remote add origin https://github.com/TU_USUARIO/TU_REPO.git
    git push -u origin main
    ```
 
+4. Si ya tenías `origin`, usá `git remote -v` y `git push` según tu caso.
+
+> **Importante:** el archivo **`web/.env`** no debe subirse (está en `.gitignore`). Las claves van solo en Vercel y en tu máquina.
+
 ---
 
-## Parte C — Vercel (hosting)
+## 9. Desplegar en Vercel
 
-1. Entrá a [vercel.com](https://vercel.com) e iniciá sesión (podés usar **Continue with GitHub**).
-2. **Add New… → Project** → importá el repo que acabás de crear.
-3. **Root Directory**: abrí *Edit* y elegí **`web`**. Es obligatorio: el `package.json` de Next está ahí.
-4. **Environment Variables** (antes del primer deploy, o en *Settings → Environment Variables*):
+1. Entrá a [https://vercel.com](https://vercel.com) e iniciá sesión (**Continue with GitHub** recomendado).
+2. **Add New… → Project**.
+3. Elegí el repositorio **menu diario** (o el nombre que le hayas puesto).
+4. Antes de deploy, en **Configure Project**:
+   - **Root Directory**: **Edit** → escribí **`web`** y confirmá. Sin esto el build falla.
+5. Desplegá la sección **Environment Variables** y agregá **una por una** (mismos valores que en tu `.env` de Supabase, y un `SESSION_SECRET` fuerte para producción):
 
    | Nombre | Valor |
    |--------|--------|
-   | `DATABASE_URL` | URI del **pooler** (6543, `pgbouncer=true`) |
-   | `DIRECT_URL` | URI **directa** (5432, host `db.xxx.supabase.co`) |
-   | `SESSION_SECRET` | Cadena **aleatoria de 32+ caracteres** (generá una nueva; no reutilices la de ejemplo) |
-   | `NEXT_PUBLIC_APP_URL` | Después del primer deploy: `https://tu-proyecto.vercel.app` (o tu dominio custom) |
-   | `NEXT_PUBLIC_CATERER_EMAIL` | *(Opcional)* Email del proveedor |
+   | `DATABASE_URL` | Igual que en `web/.env` (pooler 6543) |
+   | `DIRECT_URL` | Igual que en `web/.env` (directa 5432) |
+   | `SESSION_SECRET` | Mínimo 32 caracteres (podés generar uno nuevo; no uses el de ejemplo en producción) |
+   | `NEXT_PUBLIC_APP_URL` | Por ahora podés poner `https://algo-temporal.vercel.app` o dejarlo y actualizarlo en el paso 11 |
+   | `NEXT_PUBLIC_CATERER_EMAIL` | Opcional |
 
-   Marcá al menos **Production** (y **Preview** si querés que los PR también usen la misma DB; o usá otra DB de prueba).
+   Marcá **Production** (y **Preview** si querés que los previews también usen la misma base).
 
-5. **Deploy**. El build ejecuta `prisma migrate deploy` y crea las tablas en Supabase.
-
-6. Cuando tengas la URL final de Vercel, actualizá `NEXT_PUBLIC_APP_URL` en Vercel y hacé **Redeploy** para que los enlaces de recuperación de contraseña apunten bien.
-
----
-
-## Parte D — Datos iniciales (admin de prueba)
-
-El **seed** no corre solo en Vercel (por seguridad). Desde tu PC, con las mismas variables que Supabase (o Postgres local):
-
-1. Asegurate de tener `DATABASE_URL`, `DIRECT_URL` y `SESSION_SECRET` (32+ caracteres) en `web/.env`.
-2. `cd web && npm install && npm run db:setup`
-3. El seed crea un admin (mirá la consola por email/contraseña por defecto o usá `SEED_ADMIN_EMAIL` / `SEED_ADMIN_PASSWORD` en `.env` antes del comando).
-4. **Importante:** en producción cambiá esa contraseña desde el panel **Admin → Usuarios**.
+6. Clic en **Deploy**.
+7. Esperá a que termine el build. Si falla, abrí **Build Logs**: lo más común es `DATABASE_URL` / `DIRECT_URL` mal pegados o contraseña con caracteres que hay que **encodear** en la URL (`@` → `%40`, etc.).
 
 ---
 
-## Desarrollo local (sin Supabase)
+## 10. URL pública y redeploy
 
-1. Levantá Postgres:
+1. Cuando el deploy termine bien, copiá la URL del proyecto (ej. `https://menu-diario-xxx.vercel.app`).
+2. En Vercel: **Project → Settings → Environment Variables**.
+3. Editá **`NEXT_PUBLIC_APP_URL`** con esa URL exacta (sin barra al final).
+4. Andá a **Deployments**, abrí el último, menú **⋯ → Redeploy** (o hacé un commit vacío y push).
+
+Así los enlaces de recuperación de contraseña apuntan al sitio correcto.
+
+---
+
+## 11. Seguridad después del seed
+
+1. Entrá al sitio en Vercel como admin (usuario del seed o el que hayas creado).
+2. Andá a **Admin → Usuarios** y **cambiá la contraseña** del administrador.
+3. No uses en producción la contraseña por defecto del seed.
+
+---
+
+## 12. Cambios de base de datos en el futuro
+
+1. Editá `web/prisma/schema.prisma`.
+2. En tu Mac, en `web`:
 
    ```bash
-   cd web
+   npx prisma migrate dev --name descripcion_corta
+   ```
+
+3. Commiteá la carpeta `web/prisma/migrations` y hacé `git push`.
+4. Vercel volverá a construir y ejecutará `prisma migrate deploy` (definido en `web/vercel.json`).
+
+---
+
+## Apéndice A — Solo si querés Postgres en Docker (local)
+
+Usalo **solo** si no querés tocar Supabase en tu máquina; para producción y Vercel igual necesitás Supabase.
+
+1. Instalá **Docker Desktop** y dejalo corriendo.
+2. En `web`:
+
+   ```bash
    docker compose -f docker-compose.postgres.yml up -d
    ```
 
-2. En `web/.env`, usá las URLs del bloque “local” en `.env.example` (`menu` / `menu` / `menu_diario`).
+3. En `web/.env` usá:
 
-3. `npm run db:setup` (primera vez) y después `npm run dev`. Para cambios de esquema: `npx prisma migrate dev`.
+   ```env
+   DATABASE_URL="postgresql://menu:menu@localhost:5432/menu_diario"
+   DIRECT_URL="postgresql://menu:menu@localhost:5432/menu_diario"
+   ```
 
----
-
-## Cambios de esquema en el futuro
-
-1. Modificá `web/prisma/schema.prisma`.
-2. Local: `cd web && npx prisma migrate dev --name descripcion_del_cambio`.
-3. Commiteá la carpeta `web/prisma/migrations`.
-4. Push a GitHub → Vercel vuelve a desplegar y aplica migraciones con `prisma migrate deploy`.
+4. `npm run db:setup` y `npm run dev`.
 
 ---
 
-## Resumen de archivos clave
+## Apéndice B — Archivos de referencia
 
-| Archivo | Rol |
-|---------|-----|
+| Archivo | Para qué sirve |
+|---------|----------------|
 | `web/prisma/schema.prisma` | Modelos y `directUrl` |
-| `web/prisma/migrations/` | Historial SQL (no borrar) |
+| `web/prisma/migrations/` | Migraciones SQL (subir a git) |
 | `web/vercel.json` | Build con `migrate deploy` |
-| `web/.env.example` | Plantilla de variables |
+| `web/.env.example` | Plantilla de variables (sin secretos) |
 
-Si algo falla en el build de Vercel, abrí el log del deploy: suele ser `DATABASE_URL`/`DIRECT_URL` mal copiados o firewall de Supabase (poco frecuente en plan estándar).
+---
+
+Si algo no coincide con tu pantalla (Supabase cambia textos a veces), buscá siempre **Transaction pooler** / **Direct** y los puertos **6543** y **5432**.
