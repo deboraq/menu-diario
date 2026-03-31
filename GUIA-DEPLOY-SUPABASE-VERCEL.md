@@ -179,6 +179,10 @@ Abrí [http://localhost:3000](http://localhost:3000), iniciá sesión con el adm
 6. Clic en **Deploy**.
 7. Esperá a que termine el build. Si falla, abrí **Build Logs**: lo más común es `DATABASE_URL` / `DIRECT_URL` mal pegados o contraseña con caracteres que hay que **encodear** en la URL (`@` → `%40`, etc.).
 
+### Migraciones y error P1001 en Vercel
+
+El build en Vercel ejecuta **`prisma generate && next build`** (no corre `prisma migrate deploy` en la nube). Motivo: desde los servidores de build de Vercel a veces **no se alcanza** el host directo de Supabase (`db…:5432`) y Prisma devuelve **P1001**. Las tablas las creás **desde tu Mac** con `npm run db:setup` o `npx prisma migrate deploy` contra Supabase; el sitio en Vercel solo necesita **`DATABASE_URL`** (pooler) en runtime para la app.
+
 ---
 
 ## 10. URL pública y redeploy
@@ -210,7 +214,8 @@ Así los enlaces de recuperación de contraseña apuntan al sitio correcto.
    ```
 
 3. Commiteá la carpeta `web/prisma/migrations` y hacé `git push`.
-4. Vercel volverá a construir y ejecutará `prisma migrate deploy` (definido en `web/vercel.json`).
+4. En tu Mac (con `web/.env` apuntando a Supabase), ejecutá **`npx prisma migrate deploy`** para aplicar la migración en la base **antes** de que los usuarios usen el nuevo código (o justo después del deploy).
+5. Vercel solo hace **`prisma generate && next build`**; no aplica migraciones en el build.
 
 ---
 
@@ -242,7 +247,7 @@ Usalo **solo** si no querés tocar Supabase en tu máquina; para producción y V
 |---------|----------------|
 | `web/prisma/schema.prisma` | Modelos y `directUrl` |
 | `web/prisma/migrations/` | Migraciones SQL (subir a git) |
-| `web/vercel.json` | Build con `migrate deploy` |
+| `web/vercel.json` | Build: `generate` + `next build` (sin migrate en la nube) |
 | `web/.env.example` | Plantilla de variables (sin secretos) |
 
 ---
