@@ -1,13 +1,21 @@
 "use client";
 
-import { useActionState } from "react";
-import { registerAction } from "@/app/actions/auth";
+import { useActionState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { registerAction } from "@/app/actions/auth";
 
 type Props = { token: string; inviteEmail: string };
 
 export function RegisterForm({ token, inviteEmail }: Props) {
+  const router = useRouter();
   const [state, formAction, pending] = useActionState(registerAction, undefined);
+
+  useEffect(() => {
+    if (state && "ok" in state && state.ok && state.redirectTo) {
+      router.replace(state.redirectTo);
+    }
+  }, [state, router]);
 
   return (
     <form action={formAction} className="flex flex-col gap-4">
@@ -51,7 +59,7 @@ export function RegisterForm({ token, inviteEmail }: Props) {
           className="ui-input"
         />
       </label>
-      {state?.error ? (
+      {state && "error" in state ? (
         <p className="rounded-xl border border-red-500/30 bg-[var(--danger-bg)] px-3 py-2 text-sm text-red-300" role="alert">
           {state.error}
         </p>

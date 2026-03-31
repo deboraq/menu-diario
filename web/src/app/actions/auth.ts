@@ -6,6 +6,11 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/session";
 
+export type AuthFormState =
+  | undefined
+  | { error: string }
+  | { ok: true; redirectTo: string };
+
 const loginSchema = z.object({
   email: z.string().email(),
   password: z.string().min(6),
@@ -19,9 +24,9 @@ const registerSchema = z.object({
 });
 
 export async function loginAction(
-  _prev: { error?: string } | undefined,
+  _prev: AuthFormState,
   formData: FormData
-) {
+): Promise<AuthFormState> {
   const parsed = loginSchema.safeParse({
     email: formData.get("email"),
     password: formData.get("password"),
@@ -30,25 +35,44 @@ export async function loginAction(
     return { error: "Revisá el correo y la contraseña." };
   }
   const { email, password } = parsed.data;
-  const user = await prisma.user.findUnique({ where: { email } });
+  let user;
+  try {
+    user = await prisma.user.findUnique({ where: { email } });
+  } catch {
+    return {
+      error:
+        "No se pudo conectar a la base de datos. Revisá DATABASE_URL y DIRECT_URL en Vercel (sin comillas; pooler en DATABASE_URL).",
+    };
+  }
   if (!user || !(await bcrypt.compare(password, user.passwordHash))) {
     return { error: "Credenciales incorrectas." };
   }
-  const session = await getSession();
-  session.user = {
-    userId: user.id,
-    email: user.email,
-    name: user.name,
-    role: user.role === "ADMIN" ? "ADMIN" : "EMPLOYEE",
+  try {
+    const session = await getSession();
+    session.user = {
+      userId: user.id,
+      email: user.email,
+      name: user.name,
+      role: user.role === "ADMIN" ? "ADMIN" : "EMPLOYEE",
+    };
+    await session.save();
+  } catch {
+    return {
+      error:
+        "Error de sesión: SESSION_SECRET en Vercel debe tener al menos 32 caracteres y coincidir entre deploys.",
+    };
+  }
+  // No usar redirect() acá: con useActionState en producción suele mostrar error genérico.
+  return {
+    ok: true,
+    redirectTo: user.role === "ADMIN" ? "/admin" : "/menu",
   };
-  await session.save();
-  redirect(user.role === "ADMIN" ? "/admin" : "/menu");
 }
 
 export async function registerAction(
-  _prev: { error?: string } | undefined,
+  _prev: AuthFormState,
   formData: FormData
-) {
+): Promise<AuthFormState> {
   const parsed = registerSchema.safeParse({
     token: formData.get("token"),
     firstName: formData.get("firstName"),
@@ -63,7 +87,15 @@ export async function registerAction(
   if (name.length < 3) {
     return { error: "Nombre y apellido demasiado cortos." };
   }
-  const invite = await prisma.invite.findUnique({ where: { token } });
+  let invite;
+  try {
+    invite = await prisma.invite.findUnique({ where: { token } });
+  } catch {
+    return {
+      error:
+        "No se pudo conectar a la base de datos. Revisá las variables en Vercel.",
+    };
+  }
   if (!invite) {
     return { error: "Invitación no encontrada." };
   }
@@ -80,27 +112,39 @@ export async function registerAction(
     return { error: "Ya existe una cuenta con ese correo." };
   }
   const passwordHash = await bcrypt.hash(password, 10);
-  const user = await prisma.user.create({
-    data: {
-      email: invite.email,
-      name,
-      passwordHash,
+  let user;
+  try {
+    user = await prisma.user.create({
+      data: {
+        email: invite.email,
+        name,
+        passwordHash,
+        role: "EMPLOYEE",
+      },
+    });
+    await prisma.invite.update({
+      where: { id: invite.id },
+      data: { usedAt: new Date() },
+    });
+  } catch {
+    return { error: "No se pudo crear la cuenta. Probá de nuevo." };
+  }
+  try {
+    const session = await getSession();
+    session.user = {
+      userId: user.id,
+      email: user.email,
+      name: user.name,
       role: "EMPLOYEE",
-    },
-  });
-  await prisma.invite.update({
-    where: { id: invite.id },
-    data: { usedAt: new Date() },
-  });
-  const session = await getSession();
-  session.user = {
-    userId: user.id,
-    email: user.email,
-    name: user.name,
-    role: "EMPLOYEE",
-  };
-  await session.save();
-  redirect("/menu");
+    };
+    await session.save();
+  } catch {
+    return {
+      error:
+        "Cuenta creada pero falló la sesión. Revisá SESSION_SECRET en Vercel (mín. 32 caracteres).",
+    };
+  }
+  return { ok: true, redirectTo: "/menu" };
 }
 
 export async function logoutAction() {
